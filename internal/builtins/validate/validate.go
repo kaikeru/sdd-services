@@ -12,7 +12,7 @@ type ValidateServer struct{}
 
 func New() *ValidateServer { return &ValidateServer{} }
 
-func (s *ValidateServer) Name() string { return "rss/validate" }
+func (s *ValidateServer) Name() string { return "ktsu/validate" }
 
 func (s *ValidateServer) Tools() []mcp.Tool {
 	return []mcp.Tool{

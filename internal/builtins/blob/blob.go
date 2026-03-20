@@ -12,7 +12,7 @@ type BlobServer struct{}
 
 func New() *BlobServer { return &BlobServer{} }
 
-func (s *BlobServer) Name() string { return "rss/blob" }
+func (s *BlobServer) Name() string { return "ktsu/blob" }
 
 func (s *BlobServer) Tools() []mcp.Tool {
 	return []mcp.Tool{

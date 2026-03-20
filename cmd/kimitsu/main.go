@@ -33,8 +33,8 @@ func main() {
 
 func rootCmd() *cobra.Command {
 	root := &cobra.Command{
-		Use:   "rss",
-		Short: "RSS — Reliable Service Stack",
+		Use:   "kimitsu",
+		Short: "Kimitsu — agentic pipeline framework",
 	}
 	root.AddCommand(startCmd())
 	root.AddCommand(validateCmd())
@@ -51,7 +51,7 @@ func signalCtx() context.Context {
 func startCmd() *cobra.Command {
 	start := &cobra.Command{
 		Use:   "start",
-		Short: "Start an RSS service",
+		Short: "Start a Kimitsu service",
 	}
 	start.AddCommand(startOrchestratorCmd())
 	start.AddCommand(startRuntimeCmd())
@@ -72,7 +72,7 @@ func startOrchestratorCmd() *cobra.Command {
 	var envPath string
 	cmd := &cobra.Command{
 		Use:   "orchestrator",
-		Short: "Start the RSS orchestrator",
+		Short: "Start the Kimitsu orchestrator",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var envCfg *config.EnvConfig
 			if envPath != "" {
@@ -98,7 +98,7 @@ func startRuntimeCmd() *cobra.Command {
 	var orchestratorURL, gatewayURL string
 	cmd := &cobra.Command{
 		Use:   "runtime",
-		Short: "Start the RSS agent runtime",
+		Short: "Start the Kimitsu agent runtime",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			r := runtime.New(runtime.Config{
 				OrchestratorURL: orchestratorURL,
@@ -117,7 +117,7 @@ func startGatewayCmd() *cobra.Command {
 	var configPath string
 	cmd := &cobra.Command{
 		Use:   "gateway",
-		Short: "Start the RSS LLM gateway",
+		Short: "Start the Kimitsu LLM gateway",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var gatewayCfg *config.GatewayConfig
 			if configPath != "" {
@@ -144,7 +144,7 @@ func startBuiltinCmd(name string, defaultPort int, newFn func() builtins.Builtin
 	var orchestratorURL string
 	cmd := &cobra.Command{
 		Use:   name,
-		Short: fmt.Sprintf("Start the rss/%s built-in tool server", name),
+		Short: fmt.Sprintf("Start the ktsu/%s built-in tool server", name),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			b := newFn()
 			return builtins.StartBuiltin(b, port, orchestratorURL)
@@ -161,7 +161,7 @@ func validateCmd() *cobra.Command {
 	var envPath string
 	cmd := &cobra.Command{
 		Use:   "validate",
-		Short: "Validate RSS configuration files",
+		Short: "Validate Kimitsu configuration files",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if envPath != "" {
 				if _, err := config.LoadEnv(envPath); err != nil {
@@ -180,7 +180,7 @@ func validateCmd() *cobra.Command {
 func lockCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "lock",
-		Short: "Generate rss.lock.yaml",
+		Short: "Generate kimitsu.lock.yaml",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			fmt.Println("lock: not implemented")
 			return nil

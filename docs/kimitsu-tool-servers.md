@@ -1,11 +1,11 @@
-# RSS — Tool Servers
+# Kimitsu — Tool Servers
 ## Architecture & Design Reference — v3
 
 ---
 
 ## Overview
 
-Tool servers are the atomic unit of RSS. Every capability an agent has comes from a tool server. An agent with no tools can only reason about its inputs and produce output — it cannot call external services, read from storage, or cause side effects.
+Tool servers are the atomic unit of Kimitsu. Every capability an agent has comes from a tool server. An agent with no tools can only reason about its inputs and produce output — it cannot call external services, read from storage, or cause side effects.
 
 There are three tiers of tool server references:
 
@@ -13,7 +13,7 @@ There are three tiers of tool server references:
 |---|---|---|---|
 | Marketplace | `servers.yaml` | name only (`sentiment-scorer`) | `servers.yaml` |
 | Local | `servers/*.server.yaml` | path (`./servers/wiki-search.server.yaml`) | the file itself |
-| Built-in | shipped with RSS | name only (`rss/kv`) | RSS release |
+| Built-in | shipped with Kimitsu | name only (`ktsu/kv`) | Kimitsu release |
 
 ---
 
@@ -34,7 +34,7 @@ servers:
     version: "2.0.0"
 ```
 
-Local tool server files and built-in servers (`rss/*`) are never listed in `servers.yaml`.
+Local tool server files and built-in servers (`ktsu/*`) are never listed in `servers.yaml`.
 
 ---
 
@@ -136,22 +136,22 @@ tools:
   - sentiment-scorer                      # marketplace — resolved via servers.yaml
   - crm                                   # marketplace — resolved via servers.yaml
   - "./servers/wiki-search.server.yaml"   # local — resolved by path
-  - rss/kv                                # built-in — always available
+  - ktsu/kv                                # built-in — always available
 ```
 
 ---
 
 ## Built-in Tool Servers
 
-Built-in tool servers are first-party MCP servers shipped as standalone Docker images by RSS. They run on the internal network with well-known service names. Stateful built-in servers write to the orchestrator's state store via the orchestrator's internal HTTP API — the orchestrator remains the single writer to the database.
+Built-in tool servers are first-party MCP servers shipped as standalone Docker images by Kimitsu. They run on the internal network with well-known service names. Stateful built-in servers write to the orchestrator's state store via the orchestrator's internal HTTP API — the orchestrator remains the single writer to the database.
 
 ### Unrestricted — Available to All Agents
 
 | Server | Tools | Description |
 |---|---|---|
-| `rss/format@1.0.0` | `format` | Format data as JSON, markdown, CSV |
-| `rss/validate@1.0.0` | `validate` | Validate data against a JSON schema |
-| `rss/transform@1.0.0` | `transform` | Map / filter / reduce over structured data |
+| `ktsu/format@1.0.0` | `format` | Format data as JSON, markdown, CSV |
+| `ktsu/validate@1.0.0` | `validate` | Validate data against a JSON schema |
+| `ktsu/transform@1.0.0` | `transform` | Map / filter / reduce over structured data |
 
 ### Restricted — Pipeline Agents Only
 
@@ -159,13 +159,13 @@ Only pipeline agents (not sub-agents) may declare these. The orchestrator does n
 
 | Server | Tools | Description |
 |---|---|---|
-| `rss/kv@1.0.0` | `kv-get`, `kv-set`, `kv-delete`, `kv-list` | Key-value storage scoped to agent namespace |
-| `rss/blob@1.0.0` | `blob-put`, `blob-get`, `blob-delete` | Binary / file storage |
-| `rss/log@1.0.0` | `log-append` | Append-only structured run log |
-| `rss/memory@1.0.0` | `memory-store`, `memory-search` | Semantic vector memory (similarity search) |
-| `rss/envelope@1.0.0` | `envelope-get-inlet`, `envelope-get-run` | Read run context and trigger metadata (read-only) |
+| `ktsu/kv@1.0.0` | `kv-get`, `kv-set`, `kv-delete`, `kv-list` | Key-value storage scoped to agent namespace |
+| `ktsu/blob@1.0.0` | `blob-put`, `blob-get`, `blob-delete` | Binary / file storage |
+| `ktsu/log@1.0.0` | `log-append` | Append-only structured run log |
+| `ktsu/memory@1.0.0` | `memory-store`, `memory-search` | Semantic vector memory (similarity search) |
+| `ktsu/envelope@1.0.0` | `envelope-get-inlet`, `envelope-get-run` | Read run context and trigger metadata (read-only) |
 
-**Why `rss/envelope` is restricted:** Although envelope reads have no side effects, they expose trigger context that may contain PII or sensitive routing information. Restricting access to pipeline agents prevents sub-agents from leaking this context into downstream tool calls or marketplace tool servers.
+**Why `ktsu/envelope` is restricted:** Although envelope reads have no side effects, they expose trigger context that may contain PII or sensitive routing information. Restricting access to pipeline agents prevents sub-agents from leaking this context into downstream tool calls or marketplace tool servers.
 
 ### KV Scoping
 
@@ -173,13 +173,13 @@ The orchestrator automatically namespaces KV keys under the calling agent's `ste
 
 ### Built-in Tool Server Versioning
 
-Built-in tool servers are versioned and shipped as independent images. When a new image ships `rss/kv@2.0.0`, existing workflows referencing `@1.0.0` continue to work during a deprecation window. After the deprecation window, the old version is removed and builds referencing it fail with a clear migration error.
+Built-in tool servers are versioned and shipped as independent images. When a new image ships `ktsu/kv@2.0.0`, existing workflows referencing `@1.0.0` continue to work during a deprecation window. After the deprecation window, the old version is removed and builds referencing it fail with a clear migration error.
 
 ---
 
 ## Tool Server Access Control
 
-RSS has two distinct access control mechanisms. They operate at different layers and serve different purposes.
+Kimitsu has two distinct access control mechanisms. They operate at different layers and serve different purposes.
 
 ### Pipeline-Agent Restriction (Built-in Servers)
 
@@ -190,9 +190,9 @@ The `restricted` field on a built-in tool server controls which agent types may 
 | `restricted: false` | All agents including sub-agents | Pure, stateless tools. **Default.** |
 | `restricted: true` | Pipeline agents only | Storage, context, anything with side effects or sensitive data |
 
-Enforced at invocation time — the orchestrator only includes restricted tool server endpoints in pipeline agent invocation payloads, never in sub-agent payloads. Third-party tool servers cannot self-restrict; the `restricted` flag is only meaningful on built-in tool servers managed by RSS.
+Enforced at invocation time — the orchestrator only includes restricted tool server endpoints in pipeline agent invocation payloads, never in sub-agent payloads. Third-party tool servers cannot self-restrict; the `restricted` flag is only meaningful on built-in tool servers managed by Kimitsu.
 
-A sub-agent that could call `rss/kv` or `rss/envelope` would be able to cause side effects or read sensitive context outside the visibility of the pipeline DAG. Restricting these to pipeline agents keeps the side-effect and data-access surface fully visible in the agent YAML files that appear in the pipeline — auditable without tracing sub-agent chains.
+A sub-agent that could call `ktsu/kv` or `ktsu/envelope` would be able to cause side effects or read sensitive context outside the visibility of the pipeline DAG. Restricting these to pipeline agents keeps the side-effect and data-access surface fully visible in the agent YAML files that appear in the pipeline — auditable without tracing sub-agent chains.
 
 ### Tool-Level Access Policy (All Servers)
 
@@ -226,7 +226,7 @@ The allowlist can be overridden per environment via environment variables, witho
 access:
   allowlist:
     - "crm-read-*"
-  allowlist_env: RSS_CRM_ALLOWLIST    # comma-separated, overrides allowlist if set
+  allowlist_env: KTSU_CRM_ALLOWLIST    # comma-separated, overrides allowlist if set
 ```
 
 Use this to tighten the permitted set in production without modifying shared server files.
@@ -261,13 +261,13 @@ Both conditions are caught at boot — they are never silently resolved at runti
 
 #### Security Posture
 
-The allowlist narrows the callable surface. Container-level constraints (no network egress, resource limits, execution timeouts) restrict what permitted tools can do with their access. Neither layer alone is a hard sandbox. For sensitive contexts, both are required. The docs for `rss/cli` describe this in detail.
+The allowlist narrows the callable surface. Container-level constraints (no network egress, resource limits, execution timeouts) restrict what permitted tools can do with their access. Neither layer alone is a hard sandbox. For sensitive contexts, both are required. The docs for `ktsu/cli` describe this in detail.
 
 ---
 
-## `rss/cli` — CLI Tool Server
+## `ktsu/cli` — CLI Tool Server
 
-`rss/cli` is a built-in tool server that wraps standard Unix CLI tools as typed MCP tools. Agents call CLI utilities the same way they call any other tool — over HTTP via MCP, same protocol, same mental model.
+`ktsu/cli` is a built-in tool server that wraps standard Unix CLI tools as typed MCP tools. Agents call CLI utilities the same way they call any other tool — over HTTP via MCP, same protocol, same mental model.
 
 ### Why a Server, Not Direct Invocation
 
@@ -275,7 +275,7 @@ Calling CLI tools directly from an agent reasoning loop has no interface contrac
 
 ### Standard Image
 
-`rss/cli@1.0.0` ships with a curated set of tools covering the most common pipeline needs:
+`ktsu/cli@1.0.0` ships with a curated set of tools covering the most common pipeline needs:
 
 | Tool | Description |
 |---|---|
@@ -303,7 +303,7 @@ name: "cli"
 version: "1.0.0"
 description: "Standard Unix CLI tools."
 
-server: "http://rss-cli:8080"
+server: "http://ktsu-cli:8080"
 auth:   none
 egress: false
 stateful: false
@@ -344,19 +344,19 @@ tools:
 And in Docker Compose:
 
 ```yaml
-  rss-cli:
-    image: rss/cli:1.0.0
+  ktsu-cli:
+    image: ktsu/cli:1.0.0
     # no ORCHESTRATOR_URL — cli is stateless, no back-channel needed
     # no network egress by default
 ```
 
 ### Custom CLI Image
 
-To add tools not in the standard image, extend `rss/cli` as a base:
+To add tools not in the standard image, extend `ktsu/cli` as a base:
 
 ```dockerfile
 # Dockerfile
-FROM rss/cli:1.0.0
+FROM ktsu/cli:1.0.0
 RUN apt-get update && apt-get install -y \
     imagemagick \
     ghostscript \
@@ -432,10 +432,10 @@ The agent references `"./servers/cli-custom.server.yaml"` exactly like any other
 
 ### Container Constraints
 
-`rss/cli` and custom CLI images run with the following constraints enforced at the container level:
+`ktsu/cli` and custom CLI images run with the following constraints enforced at the container level:
 
 - **No network egress.** The container has no outbound internet access. Tools that make network calls (curl, wget) are not included in the standard image and should not be added to custom images unless explicitly needed and declared with `egress: true`.
-- **Read-only filesystem.** The container filesystem is read-only except for a tightly scoped scratch directory mounted at `/tmp/rss-scratch`. Tool outputs that need to persist between calls should be written to `rss/blob` via the parent agent.
+- **Read-only filesystem.** The container filesystem is read-only except for a tightly scoped scratch directory mounted at `/tmp/ktsu-scratch`. Tool outputs that need to persist between calls should be written to `ktsu/blob` via the parent agent.
 - **Execution timeout.** Each tool call has a maximum execution time (default: 30s). Runaway processes are killed and the tool call fails with `execution_timeout`.
 - **Resource limits.** CPU and memory limits are set at the container level via Docker or the orchestrator's container runtime configuration.
 
@@ -454,7 +454,7 @@ Tool servers that cause external side effects (writing to a database, sending an
 
 ### The `egress` Field
 
-Tool servers that make outbound calls to external services must declare `egress: true`. This is an operator signal — it tells the person deploying the server that it needs outbound network access. RSS does not enforce this at the network layer since it does not manage tool server deployment.
+Tool servers that make outbound calls to external services must declare `egress: true`. This is an operator signal — it tells the person deploying the server that it needs outbound network access. Kimitsu does not enforce this at the network layer since it does not manage tool server deployment.
 
 ### The Two Fields are Orthogonal
 

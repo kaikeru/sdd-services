@@ -12,7 +12,7 @@ type KVServer struct{}
 
 func New() *KVServer { return &KVServer{} }
 
-func (s *KVServer) Name() string { return "rss/kv" }
+func (s *KVServer) Name() string { return "ktsu/kv" }
 
 func (s *KVServer) Tools() []mcp.Tool {
 	return []mcp.Tool{

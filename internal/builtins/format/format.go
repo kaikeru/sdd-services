@@ -12,7 +12,7 @@ type FormatServer struct{}
 
 func New() *FormatServer { return &FormatServer{} }
 
-func (s *FormatServer) Name() string { return "rss/format" }
+func (s *FormatServer) Name() string { return "ktsu/format" }
 
 func (s *FormatServer) Tools() []mcp.Tool {
 	return []mcp.Tool{

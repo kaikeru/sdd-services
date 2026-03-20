@@ -1,11 +1,11 @@
-# RSS — Configuration Reference
+# Kimitsu — Configuration Reference
 ## Architecture & Design Reference — v3
 
 ---
 
 ## Project Structure
 
-All RSS files use a `kind` field to declare what they are.
+All Kimitsu files use a `kind` field to declare what they are.
 
 ```
 kind: agent       → agents/*.agent.yaml
@@ -55,7 +55,7 @@ my-project/
   fixtures/
     sample-request.json
 
-  rss.lock.yaml                     # auto-generated — fully resolved dependency tree
+  ktsu.lock.yaml                     # auto-generated — fully resolved dependency tree
 ```
 
 ---
@@ -77,7 +77,7 @@ pipeline:
       - "./inlets/workflow-inbound.inlet.yaml@1.0.0"
 
   - id: parse
-    agent: rss/secure-parser@1.0.0
+    agent: ktsu/secure-parser@1.0.0
     depends_on: [inbound]
     params:
       source_field: message
@@ -151,8 +151,8 @@ model_policy:
 | `transform` | Inline transform declaration |
 | `depends_on` | Array of step IDs this step waits for (not needed for transform steps — derived from inputs) |
 | `consolidation` | Fan-in strategy: `array` \| `merge` \| `first` |
-| `confidence_threshold` | Minimum `rss_confidence` value required for the step to proceed |
-| `params` | Parameters for built-in agents (e.g. `rss/secure-parser`) |
+| `confidence_threshold` | Minimum `ktsu_confidence` value required for the step to proceed |
+| `params` | Parameters for built-in agents (e.g. `ktsu/secure-parser`) |
 
 ### Step Failure Behaviour
 
@@ -170,7 +170,7 @@ Failure tolerance is declared on the consuming agent via `inputs[].optional`, no
 
 ## Environment Config Reference
 
-Environment configs overlay workflow defaults without touching workflow or agent files. The active env is selected at invocation time: `rss run --env environments/staging.env.yaml`.
+Environment configs overlay workflow defaults without touching workflow or agent files. The active env is selected at invocation time: `ktsu run --env environments/staging.env.yaml`.
 
 ### Override Resolution Hierarchy (highest to lowest priority)
 
@@ -201,7 +201,7 @@ runtime:
 
 state_store:
   backend: sqlite
-  path:    "./data/rss.db"
+  path:    "./data/ktsu.db"
 
 secrets:
   source: dotenv
@@ -231,7 +231,7 @@ state_store:
 
 secrets:
   source: aws_secrets_manager
-  prefix: "rss/staging/"
+  prefix: "ktsu/staging/"
 ```
 
 ### Production Environment
@@ -256,11 +256,11 @@ state_store:
 
 secrets:
   source: aws_secrets_manager
-  prefix: "rss/production/"
+  prefix: "ktsu/production/"
 
 logging:
   level:            info
-  drain:            "https://logs.internal/rss"
+  drain:            "https://logs.internal/kimitsu"
   include_envelope: true
 ```
 
@@ -439,7 +439,7 @@ The orchestrator validates the full dependency graph at startup before any conta
 1.  parse           Load and validate all YAML files (kind + schema check)
 2.  db-init         Connect to state store, run migrations
 3.  resolve         Fetch marketplace tool servers declared in servers.yaml
-4.  lock            Write rss.lock.yaml with full resolved dependency tree
+4.  lock            Write ktsu.lock.yaml with full resolved dependency tree
 5.  check-dag       Topological sort on pipeline depends_on — fail on cycle
 6.  check-agents    DFS across all agent sub-agent references — fail on cycle;
                     resolve server grants for each sub-agent against its parent;
@@ -476,7 +476,7 @@ The orchestrator validates the full dependency graph at startup before any conta
 for each agent tool reference:
   if marketplace name:    → must exist in servers.yaml
   if local path:          → file must exist on disk
-  if built-in (rss/*):    → always valid
+  if built-in (ktsu/*):    → always valid
   if restricted built-in in a sub-agent: → fail
 
 for each tool server file with access.allowlist:
@@ -525,9 +525,9 @@ Both checks are fatal.
 
 ### Reserved Field Validation (Step 8)
 
-- Any `rss_` prefixed output field not in the known reserved vocabulary is a boot error.
-- Reserved field types are checked (`rss_confidence` must be `number`, `rss_flags` must be `array of string`, etc.).
-- `confidence_threshold` on a pipeline step is only valid if the agent's output schema declares `rss_confidence`.
+- Any `ktsu_` prefixed output field not in the known reserved vocabulary is a boot error.
+- Reserved field types are checked (`ktsu_confidence` must be `number`, `ktsu_flags` must be `array of string`, etc.).
+- `confidence_threshold` on a pipeline step is only valid if the agent's output schema declares `ktsu_confidence`.
 
 ### Example Error Output
 
@@ -541,12 +541,12 @@ ERROR  Graph validation failed. Run aborted. No containers started.
        Cycle path: research-brief -> summarize -> research-brief
        Declared in: agents/summarize.agent.yaml@1.0.0
 
-  [3]  Unknown reserved output field: "rss_custom_signal"
+  [3]  Unknown reserved output field: "ktsu_custom_signal"
        Referenced in: agents/triage.agent.yaml
 
   [4]  confidence_threshold declared on step "triage" but agent output schema
-       does not include rss_confidence.
-       Fix: add rss_confidence to the agent's output schema.
+       does not include ktsu_confidence.
+       Fix: add ktsu_confidence to the agent's output schema.
 
   [5]  Sub-agent server access violation
        Sub-agent:   agents/summarize.agent.yaml
@@ -592,7 +592,7 @@ WARNING  Possible server URL mismatch
 
 ### Upgrading a Marketplace Tool Server
 
-Update the version in `servers.yaml` and run `rss lock` to regenerate the lockfile. The validate-io check catches interface incompatibilities before the new version is adopted.
+Update the version in `servers.yaml` and run `ktsu lock` to regenerate the lockfile. The validate-io check catches interface incompatibilities before the new version is adopted.
 
 ---
 

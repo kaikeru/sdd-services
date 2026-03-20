@@ -1,23 +1,23 @@
-# RSS — Overview & Philosophy
+# Kimitsu — Overview & Philosophy
 ## Architecture & Design Reference — v3
 
 > **Tools are pure functions. Agents are stateful processes.**
 > **The pipeline is a declaration. The orchestrator is the kernel. The tool server is the atom.**
-> **Every component boundary is an HTTP contract. The RSS implementations are reference implementations, not the only valid ones.**
+> **Every component boundary is an HTTP contract. The Kimitsu implementations are reference implementations, not the only valid ones.**
 
 ---
 
 ## Philosophy
 
-RSS is built on a single inversion of the conventional agentic model:
+Kimitsu is built on a single inversion of the conventional agentic model:
 
 **Conventional model:** The agent is the atom. Tools and tool servers are accessories bolted on.
 
-**RSS model:** The tool is the atom. The agent is an emergent artifact of its tool composition.
+**Kimitsu model:** The tool is the atom. The agent is an emergent artifact of its tool composition.
 
 This maps directly to how engineers already think about software:
 
-| RSS Concept | Software Analogy |
+| Kimitsu Concept | Software Analogy |
 |---|---|
 | Tool | Function / method |
 | Tool server | Library / service |
@@ -38,16 +38,16 @@ Tools are the first-class development primitive. An agent has no identity beyond
 
 ### Modular by Design
 
-Every component in RSS — the orchestrator, Agent Runtime, LLM Gateway, and all tool servers — communicates exclusively over documented HTTP APIs. No component assumes it is talking to the RSS implementation of any peer. The Agent Runtime does not care whether the orchestrator is the RSS orchestrator or a conforming replacement. The LLM Gateway is swappable for any proxy that speaks the same contract.
+Every component in Kimitsu — the orchestrator, Agent Runtime, LLM Gateway, and all tool servers — communicates exclusively over documented HTTP APIs. No component assumes it is talking to the Kimitsu implementation of any peer. The Agent Runtime does not care whether the orchestrator is the Kimitsu orchestrator or a conforming replacement. The LLM Gateway is swappable for any proxy that speaks the same contract.
 
 This is a deliberate architectural commitment, not a side effect of the HTTP choice:
 
 - The orchestrator's HTTP API (invocation dispatch, heartbeat endpoint, Air-Lock, state writes) is a first-class documented contract.
 - The Agent Runtime invocation payload format is a spec. What the orchestrator sends defines what any conforming orchestrator must send.
-- The LLM Gateway HTTP contract is a replaceable surface — a team that needs to swap in a different proxy can do so. The RSS LLM Gateway is a first-party implementation of that contract, not a wrapper around any external library. It was designed with third-party gateway projects as reference points, but carries no runtime dependency on them.
-- Tool servers are already fully independent — MCP over HTTP, no RSS coupling whatsoever.
+- The LLM Gateway HTTP contract is a replaceable surface — a team that needs to swap in a different proxy can do so. The Kimitsu LLM Gateway is a first-party implementation of that contract, not a wrapper around any external library. It was designed with third-party gateway projects as reference points, but carries no runtime dependency on them.
+- Tool servers are already fully independent — MCP over HTTP, no Kimitsu coupling whatsoever.
 
-The RSS implementations are **reference implementations**. They are the defaults, they are supported, and they are what most teams will run. But a team that needs to replace the orchestrator with a Temporal-backed implementation, or the LLM Gateway with an internal proxy, or the Agent Runtime with a serverless function executor, should be able to do so without forking RSS or losing compatibility with the YAML pipeline definitions.
+The Kimitsu implementations are **reference implementations**. They are the defaults, they are supported, and they are what most teams will run. But a team that needs to replace the orchestrator with a Temporal-backed implementation, or the LLM Gateway with an internal proxy, or the Agent Runtime with a serverless function executor, should be able to do so without forking Kimitsu or losing compatibility with the YAML pipeline definitions.
 
 Well-documented boundaries make this possible. When in doubt, document the contract before writing the implementation.
 
@@ -57,7 +57,7 @@ Well-documented boundaries make this possible. When in doubt, document the contr
 
 ### The Four Pipeline Primitives
 
-Every step in an RSS pipeline is exactly one of four things:
+Every step in an Kimitsu pipeline is exactly one of four things:
 
 | Primitive | LLM | Tools | Role |
 |---|---|---|---|
@@ -74,11 +74,11 @@ Nothing else. If logic requires reasoning about content, it is an agent. If it i
 - Same input always produces the same output
 - Safe to call from multiple agents simultaneously
 - The tool server starts once, serves many calls, remembers nothing
-- Run as long-lived MCP servers hosted externally — RSS does not manage their runtime
+- Run as long-lived MCP servers hosted externally — Kimitsu does not manage their runtime
 
 ### Tool Servers are External MCP Servers
 
-Every tool server is an MCP server deployed and operated independently of RSS. The tool server file is a pointer: it declares where the server lives, how to authenticate, and what the interface contract is. RSS does not care what language the server is written in, how it is packaged, or how it is deployed. A single MCP server can expose multiple tools — grouping related tools into one server is a packaging decision made by the server author.
+Every tool server is an MCP server deployed and operated independently of Kimitsu. The tool server file is a pointer: it declares where the server lives, how to authenticate, and what the interface contract is. Kimitsu does not care what language the server is written in, how it is packaged, or how it is deployed. A single MCP server can expose multiple tools — grouping related tools into one server is a packaging decision made by the server author.
 
 ### Agents are Stateful Processes
 
@@ -108,33 +108,33 @@ When validation fails on an agent step, the Air-Lock returns the validation erro
 
 ### MCP as the Singular Interface
 
-Every tool server presents as an MCP server to agents over HTTP. Agents call tools by sending MCP tool call requests to the server's endpoint. Built-in tool servers (provided by RSS) follow the same interface — they are just well-known MCP servers with stable URLs on the internal network. There is no translation layer and no proprietary protocol. Everything is debuggable with curl.
+Every tool server presents as an MCP server to agents over HTTP. Agents call tools by sending MCP tool call requests to the server's endpoint. Built-in tool servers (provided by Kimitsu) follow the same interface — they are just well-known MCP servers with stable URLs on the internal network. There is no translation layer and no proprietary protocol. Everything is debuggable with curl.
 
 ### Reserved Output Fields
 
-Any agent may include reserved `rss_` prefixed fields in its output schema. The orchestrator has hardcoded behavior for each one — they are a contract between the agent and the orchestrator that bypasses normal data flow. See `rss-reserved-outputs.md` for the full reference.
+Any agent may include reserved `ktsu_` prefixed fields in its output schema. The orchestrator has hardcoded behavior for each one — they are a contract between the agent and the orchestrator that bypasses normal data flow. See `kimitsu-reserved-outputs.md` for the full reference.
 
 ---
 
 ## Landscape & Differentiation
 
-### Where RSS is Differentiated
+### Where Kimitsu is Differentiated
 
 **Reference implementations, not a closed system.** Every component boundary is a documented HTTP contract. The orchestrator, Agent Runtime, and LLM Gateway are reference implementations — conforming replacements are first-class citizens. Teams that need to swap a component for operational or compliance reasons can do so without forking.
 
-**Tool as the atomic unit.** Every other framework treats the agent as the atom. RSS treats the tool as the atom — agents are compositions of tool servers with a prompt.
+**Tool as the atomic unit.** Every other framework treats the agent as the atom. Kimitsu treats the tool as the atom — agents are compositions of tool servers with a prompt.
 
-**MCP as the only interface.** Tool servers are MCP servers. RSS does not wrap, host, or manage user-provided tool servers. Agents call them directly over HTTP. There is one protocol and one mental model.
+**MCP as the only interface.** Tool servers are MCP servers. Kimitsu does not wrap, host, or manage user-provided tool servers. Agents call them directly over HTTP. There is one protocol and one mental model.
 
 **Four and only four pipeline primitives.** Inlet, transform, agent, outlet. No special cases, no escape hatches. If it needs reasoning, it is an agent. Everything else is deterministic.
 
-**Four container tiers, clearly separated.** Orchestrator, Agent Runtime, LLM Gateway, and built-in tool servers are distinct tiers with distinct responsibilities. Built-in tool servers are first-party Docker images managed by RSS — not generic external MCP servers. Stateful built-ins (kv, blob, log, memory) have a back-channel to the orchestrator and are part of the RSS state surface. User-provided tool servers have no orchestrator dependency and are operator-managed. The architecture diagram makes this split explicit.
+**Four container tiers, clearly separated.** Orchestrator, Agent Runtime, LLM Gateway, and built-in tool servers are distinct tiers with distinct responsibilities. Built-in tool servers are first-party Docker images managed by Kimitsu — not generic external MCP servers. Stateful built-ins (kv, blob, log, memory) have a back-channel to the orchestrator and are part of the Kimitsu state surface. User-provided tool servers have no orchestrator dependency and are operator-managed. The architecture diagram makes this split explicit.
 
 **Tool-level access control enforced at the Agent Runtime.** The `access.allowlist` field in any tool server file — built-in, local, or marketplace — is enforced by the Agent Runtime's MCP client, not the server. The agent's context is pruned to the permitted tool set before reasoning begins. This applies uniformly regardless of server type, including third-party marketplace servers that implement no restrictions themselves. Allowlist only, no blocklist. Explicit permit is the only mode.
 
 **Sub-agent server access is statically auditable.** A sub-agent cannot access any server endpoint not granted to its parent, and cannot have a wider allowlist than the parent for shared servers. This is validated at boot — not resolved silently at runtime. Version mismatches (parent on v1, sub-agent on v2) are caught as boot errors, not discovered in production.
 
-**`rss/cli` — CLI tools as typed MCP tools.** The standard CLI tool server wraps Unix utilities as named MCP tools with typed inputs. Agents call `jq`, `date`, `wc`, and others the same way they call any tool — over MCP, with the same access policy enforcement, the same audit trail in `skill_calls`, and the same container isolation. Custom images extend `rss/cli` as a base with a single Dockerfile and a local tool server file. No new concepts.
+**`ktsu/cli` — CLI tools as typed MCP tools.** The standard CLI tool server wraps Unix utilities as named MCP tools with typed inputs. Agents call `jq`, `date`, `wc`, and others the same way they call any tool — over MCP, with the same access policy enforcement, the same audit trail in `skill_calls`, and the same container isolation. Custom images extend `ktsu/cli` as a base with a single Dockerfile and a local tool server file. No new concepts.
 
 **Inlets are pure mappings, never agents.** The boundary between the untrusted world and the pipeline is a JMESPath extraction layer with no reasoning loop. Prompt injection in external input cannot hijack an inlet.
 
@@ -144,7 +144,7 @@ Any agent may include reserved `rss_` prefixed fields in its output schema. The 
 
 **Workflow-to-workflow chaining via outlet and inlet.** Workflows chain via a standard outlet posting to a `workflow` inlet. The causal link — `parent_run_id` — is explicit and opt-in. Each run owns its own envelope and cost budget.
 
-**Built-in agents for hardened common patterns.** `rss/` namespaced agents ship with RSS for patterns like secure parsing that are easy to get wrong. Drop them into a pipeline the same way you reference a built-in tool server.
+**Built-in agents for hardened common patterns.** `ktsu/` namespaced agents ship with Kimitsu for patterns like secure parsing that are easy to get wrong. Drop them into a pipeline the same way you reference a built-in tool server.
 
 **Sub-agents replace prompt skills.** LLM-backed reasoning tasks are modelled as full agents invoked by a parent, not as a special skill type. They get the full agent contract: typed output, Air-Lock validation, model declaration.
 
@@ -160,7 +160,7 @@ Any agent may include reserved `rss_` prefixed fields in its output schema. The 
 
 ### Related Projects
 
-| Project | Relation to RSS |
+| Project | Relation to Kimitsu |
 |---|---|
 | NanoClaw | Philosophical origin — container isolation, Claude-native, minimal codebase. |
 | kagent | Closest structural cousin — K8s CRDs for agents. Requires an actual cluster. |

@@ -12,7 +12,7 @@ type TransformServer struct{}
 
 func New() *TransformServer { return &TransformServer{} }
 
-func (s *TransformServer) Name() string { return "rss/transform" }
+func (s *TransformServer) Name() string { return "ktsu/transform" }
 
 func (s *TransformServer) Tools() []mcp.Tool {
 	return []mcp.Tool{

@@ -10,4 +10,4 @@ lint:
 	go vet ./...
 
 run-orchestrator:
-	go run ./cmd/rss start orchestrator
+	go run ./cmd/kimitsu start orchestrator

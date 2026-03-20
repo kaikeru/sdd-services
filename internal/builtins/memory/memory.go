@@ -12,7 +12,7 @@ type MemoryServer struct{}
 
 func New() *MemoryServer { return &MemoryServer{} }
 
-func (s *MemoryServer) Name() string { return "rss/memory" }
+func (s *MemoryServer) Name() string { return "ktsu/memory" }
 
 func (s *MemoryServer) Tools() []mcp.Tool {
 	return []mcp.Tool{

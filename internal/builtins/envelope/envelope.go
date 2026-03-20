@@ -12,7 +12,7 @@ type EnvelopeServer struct{}
 
 func New() *EnvelopeServer { return &EnvelopeServer{} }
 
-func (s *EnvelopeServer) Name() string { return "rss/envelope" }
+func (s *EnvelopeServer) Name() string { return "ktsu/envelope" }
 
 func (s *EnvelopeServer) Tools() []mcp.Tool {
 	return []mcp.Tool{

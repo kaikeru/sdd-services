@@ -12,7 +12,7 @@ type LogServer struct{}
 
 func New() *LogServer { return &LogServer{} }
 
-func (s *LogServer) Name() string { return "rss/log" }
+func (s *LogServer) Name() string { return "ktsu/log" }
 
 func (s *LogServer) Tools() []mcp.Tool {
 	return []mcp.Tool{

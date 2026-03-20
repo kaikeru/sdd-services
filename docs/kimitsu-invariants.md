@@ -1,15 +1,15 @@
-# RSS — Core Invariants
+# Kimitsu — Core Invariants
 ## Architecture & Design Reference — v3
 
 > These are the rules the entire system is built on. If a design decision violates one of these, the decision is wrong.
 
 ---
 
-1. **Tools are pure functions.** They have no persistent state between calls. External side effects are declared via `stateful` but not prevented by RSS.
+1. **Tools are pure functions.** They have no persistent state between calls. External side effects are declared via `stateful` but not prevented by Kimitsu.
 
-2. **Tool servers are external.** RSS does not build, package, host, or manage user-provided tool servers. A local tool server file is a pointer — URL, auth, and interface contract. Nothing more.
+2. **Tool servers are external.** Kimitsu does not build, package, host, or manage user-provided tool servers. A local tool server file is a pointer — URL, auth, and interface contract. Nothing more.
 
-3. **Built-in tool servers are a distinct tier.** `rss/` namespaced tool servers are first-party Docker images managed by RSS. Stateful built-in servers have a back-channel dependency on the orchestrator and write to the state store via the orchestrator's HTTP API. They are not generic external MCP servers — they are part of the RSS state surface.
+3. **Built-in tool servers are a distinct tier.** `ktsu/` namespaced tool servers are first-party Docker images managed by Kimitsu. Stateful built-in servers have a back-channel dependency on the orchestrator and write to the state store via the orchestrator's HTTP API. They are not generic external MCP servers — they are part of the Kimitsu state surface.
 
 4. **Marketplace tool servers are declared centrally.** `servers.yaml` is the single source of truth for external dependencies. Agents cannot call a marketplace server that is not in `servers.yaml`. This is enforced at boot.
 
@@ -25,7 +25,7 @@
 
 10. **Every tool interface is MCP over HTTP.** There is one protocol. Everything is debuggable with curl.
 
-11. **Every component boundary is a documented HTTP contract.** The orchestrator, Agent Runtime, and LLM Gateway expose their interfaces as first-class documented APIs, not implementation details. No component assumes it is talking to the RSS implementation of any peer. The RSS implementations are reference implementations — conforming replacements are valid. When in doubt, document the contract before writing the implementation.
+11. **Every component boundary is a documented HTTP contract.** The orchestrator, Agent Runtime, and LLM Gateway expose their interfaces as first-class documented APIs, not implementation details. No component assumes it is talking to the Kimitsu implementation of any peer. The Kimitsu implementations are reference implementations — conforming replacements are valid. When in doubt, document the contract before writing the implementation.
 
 12. **Sub-agents are full agents.** They have typed output, Air-Lock validation, and a model declaration. There is no special "prompt skill" type.
 
@@ -41,7 +41,7 @@
 
 18. **Inlets and outlets are declarative mappings, never agents.** Boundary steps use JMESPath field extraction with no reasoning loop. There is no LLM invocation at the pipeline boundary.
 
-19. **The envelope is orchestrator-written, agent-readable.** The orchestrator assembles the envelope from the state store. Agents read it via `rss/envelope`. No agent can modify run context.
+19. **The envelope is orchestrator-written, agent-readable.** The orchestrator assembles the envelope from the state store. Agents read it via `ktsu/envelope`. No agent can modify run context.
 
 20. **All inter-container communication is HTTP.** No Unix sockets, no shared volumes for IPC, no proprietary protocols.
 
@@ -55,13 +55,13 @@
 
 25. **There are exactly four pipeline primitives.** Inlet, transform, agent, outlet. No other step types exist. If logic requires LLM reasoning, it is an agent. If it is deterministic data shaping, it is a transform. If it sits at the boundary, it is an inlet or outlet.
 
-26. **Reserved output fields are an orchestrator contract, not a data convention.** Fields prefixed `rss_` are evaluated by the orchestrator before Air-Lock runs. Their behavior is fixed and cannot be overridden by agents or workflow configuration. Unknown `rss_` fields are a boot error.
+26. **Reserved output fields are an orchestrator contract, not a data convention.** Fields prefixed `ktsu_` are evaluated by the orchestrator before Air-Lock runs. Their behavior is fixed and cannot be overridden by agents or workflow configuration. Unknown `ktsu_` fields are a boot error.
 
 27. **Transform steps are zero-cost by definition.** They burn no LLM tokens. If logic requires reasoning about content — not just reshaping structure — it belongs in an agent.
 
 28. **Transform op vocabulary is fixed.** There is no escape hatch to arbitrary code or expressions beyond JMESPath. Complexity that exceeds the op vocabulary belongs in a tool server or agent.
 
-29. **Built-in agents follow the same rules as user-defined agents.** They appear in the DAG, consume model budget, go through Air-Lock, and are independently versioned. The `rss/` namespace signals first-party origin, not special treatment by the runtime.
+29. **Built-in agents follow the same rules as user-defined agents.** They appear in the DAG, consume model budget, go through Air-Lock, and are independently versioned. The `ktsu/` namespace signals first-party origin, not special treatment by the runtime.
 
 30. **All inlets on a multi-inlet step must produce identical output schemas.** The downstream DAG sees one typed payload regardless of which inlet fired. Schema mismatches across inlets on the same step are a boot error.
 

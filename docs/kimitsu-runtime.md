@@ -1,11 +1,11 @@
-# RSS — Runtime Architecture
+# Kimitsu — Runtime Architecture
 ## Architecture & Design Reference — v3
 
 ---
 
 ## Runtime Architecture
 
-An RSS deployment consists of four container tiers running on a shared internal network. All inter-container communication is HTTP. No container except the LLM Gateway has outbound internet access by default.
+An Kimitsu deployment consists of four container tiers running on a shared internal network. All inter-container communication is HTTP. No container except the LLM Gateway has outbound internet access by default.
 
 ### The Four Tiers
 
@@ -29,11 +29,11 @@ An RSS deployment consists of four container tiers running on a shared internal 
 │                      └──────────────┘                       │
 │                                                             │
 │  ┌──────────────────────────────────────────────────────┐   │
-│  │  Built-in Tool Servers  (first-party, RSS-managed)   │   │
+│  │  Built-in Tool Servers  (first-party, Kimitsu-managed) │   │
 │  │                                                      │   │
-│  │  rss/kv   rss/blob   rss/log   rss/envelope          │   │
-│  │  rss/memory   rss/format   rss/validate              │   │
-│  │  rss/cli   rss/transform                             │   │
+│  │  ktsu/kv   ktsu/blob   ktsu/log   ktsu/envelope          │   │
+│  │  ktsu/memory   ktsu/format   ktsu/validate              │   │
+│  │  ktsu/cli   ktsu/transform                             │   │
 │  │                                                      │   │
 │  │  Stateful servers call back to orchestrator HTTP API │   │
 │  └──────────────────────────────────────────────────────┘   │
@@ -66,7 +66,7 @@ Responsibilities:
 - Expose inlet trigger endpoints (webhooks, schedule triggers)
 - Enforce `cost_budget_usd` circuit breaker via the LLM Gateway
 - Monitor Agent Runtime heartbeats and fail steps that go silent
-- Act on reserved output fields (`rss_*`) from agent output before passing results downstream
+- Act on reserved output fields (`ktsu_*`) from agent output before passing results downstream
 
 ### Agent Runtime
 
@@ -74,7 +74,7 @@ A long-running container (or horizontally scaled pool) that executes agent logic
 
 The Agent Runtime is a **generic, reusable image**. It has no workflow-specific code. What makes an invocation a specific agent is the payload the orchestrator sends: the prompt, input data, tool server endpoint URLs, sub-agent definitions, LLM Gateway URL, and output schema. The runtime executes the agent reasoning loop and returns the result.
 
-The runtime is stateless between invocations. It holds no data about previous runs. All persistence is handled by tool calls (rss/kv, rss/blob, rss/memory) which write to the orchestrator's state store via their respective tool servers.
+The runtime is stateless between invocations. It holds no data about previous runs. All persistence is handled by tool calls (ktsu/kv, ktsu/blob, ktsu/memory) which write to the orchestrator's state store via their respective tool servers.
 
 Inlets, outlets, and transform steps do **not** execute on the Agent Runtime. They are executed directly by the orchestrator.
 
@@ -102,19 +102,19 @@ The heartbeat is lightweight — even with 10 runtime instances each running 100
 
 ### Built-in Tool Servers
 
-Built-in tool servers are first-party MCP servers shipped as standalone Docker images by RSS. They are a distinct tier from user-provided tool servers — RSS manages their lifecycle, they run on the internal network with well-known service names, and stateful built-in servers have a back-channel dependency on the orchestrator. They write to the orchestrator's state store via the orchestrator's internal HTTP API — the orchestrator remains the single writer to the database.
+Built-in tool servers are first-party MCP servers shipped as standalone Docker images by Kimitsu. They are a distinct tier from user-provided tool servers — Kimitsu manages their lifecycle, they run on the internal network with well-known service names, and stateful built-in servers have a back-channel dependency on the orchestrator. They write to the orchestrator's state store via the orchestrator's internal HTTP API — the orchestrator remains the single writer to the database.
 
-This back-channel is a meaningful architectural distinction. `rss/kv` and `rss/blob` are not independent MCP servers that happen to run nearby — they are part of the RSS state surface. Each stateful built-in server requires `ORCHESTRATOR_URL` at startup and calls back in to write state. Stateless built-in servers (`rss/cli`, `rss/format`, `rss/validate`, `rss/transform`) have no orchestrator dependency and can be run without one.
+This back-channel is a meaningful architectural distinction. `ktsu/kv` and `ktsu/blob` are not independent MCP servers that happen to run nearby — they are part of the Kimitsu state surface. Each stateful built-in server requires `ORCHESTRATOR_URL` at startup and calls back in to write state. Stateless built-in servers (`ktsu/cli`, `ktsu/format`, `ktsu/validate`, `ktsu/transform`) have no orchestrator dependency and can be run without one.
 
 ### User-Provided Tool Servers
 
-User-provided tool servers are any MCP server the operator builds or operates. They can be on the internal network or reachable over the internet. They have no dependency on the orchestrator — they are plain MCP servers. The tool server file declares the endpoint and auth; RSS routes agent tool calls to it directly.
+User-provided tool servers are any MCP server the operator builds or operates. They can be on the internal network or reachable over the internet. They have no dependency on the orchestrator — they are plain MCP servers. The tool server file declares the endpoint and auth; Kimitsu routes agent tool calls to it directly.
 
 ### LLM Gateway
 
 A long-running container that is the sole outbound path to LLM providers. No other container holds LLM API keys or makes direct calls to LLM providers. All LLM calls from agents route through the LLM Gateway via HTTP.
 
-The LLM Gateway is a **first-party RSS implementation** — it is not a wrapper around any third-party proxy library. This is a deliberate decision: the gateway is a critical security and cost boundary, its contract with the orchestrator is narrow and well-defined, and external dependencies at this layer would compromise the auditability and independence that the rest of the architecture is built on. Third-party gateway projects (LiteLLM and others) informed the design, but no runtime dependency on them exists.
+The LLM Gateway is a **first-party Kimitsu implementation** — it is not a wrapper around any third-party proxy library. This is a deliberate decision: the gateway is a critical security and cost boundary, its contract with the orchestrator is narrow and well-defined, and external dependencies at this layer would compromise the auditability and independence that the rest of the architecture is built on. Third-party gateway projects (LiteLLM and others) informed the design, but no runtime dependency on them exists.
 
 The LLM Gateway:
 - Loads `gateway.yaml` at startup and owns all group and provider configuration
@@ -127,7 +127,7 @@ The LLM Gateway:
 
 #### Internal HTTP Contract
 
-The Agent Runtime calls the LLM Gateway using RSS's internal invoke format. This is not an OpenAI-compatible API — it is a minimal, purpose-built contract between two first-party components.
+The Agent Runtime calls the LLM Gateway using Kimitsu's internal invoke format. This is not an OpenAI-compatible API — it is a minimal, purpose-built contract between two first-party components.
 
 ```
 POST /invoke
@@ -213,7 +213,7 @@ This keeps the circuit breaker fast (no DB read per call) and the gateway statel
 
 **Internal network.** A private container network connecting the orchestrator, Agent Runtime, LLM Gateway, and any built-in tool servers. No container on this network has outbound internet access by default. In Docker Compose this is a private bridge network. In ECS it is a task group with no public IP. In K8s it is a namespace with a default-deny egress NetworkPolicy.
 
-**Egress.** Tool servers that need to reach external services are deployed with outbound access at the operator's discretion. The tool server file declares `egress: true` as a signal to operators. The LLM Gateway always has egress — it is the only RSS container that talks to LLM providers.
+**Egress.** Tool servers that need to reach external services are deployed with outbound access at the operator's discretion. The tool server file declares `egress: true` as a signal to operators. The LLM Gateway always has egress — it is the only Kimitsu container that talks to LLM providers.
 
 ### Scaling Model
 
@@ -222,8 +222,8 @@ This keeps the circuit breaker fast (no DB read per call) and the gateway statel
 | Orchestrator | Single instance (HA pair for production) | Deterministic, low CPU — manages DAG state |
 | Agent Runtime | Horizontal — 1 to N instances | I/O-bound event loop; add instances for concurrency |
 | LLM Gateway | Horizontal — 1 to N instances | Proxies concurrent LLM calls; stateless |
-| Built-in tool servers | RSS-managed — one instance per server type | Stateless servers scale horizontally; stateful servers are single-instance by default |
-| User-provided tool servers | Operator-managed | RSS does not manage user tool server scaling |
+| Built-in tool servers | Kimitsu-managed — one instance per server type | Stateless servers scale horizontally; stateful servers are single-instance by default |
+| User-provided tool servers | Operator-managed | Kimitsu does not manage user tool server scaling |
 
 ---
 
@@ -279,7 +279,7 @@ The orchestrator persists all run state in a relational database. The state stor
 | `duration_ms` | integer | Wall-clock duration |
 | `tool_calls` | integer | Number of MCP tool calls made (0 for non-agent steps) |
 | `retries` | integer | Number of Air-Lock retries (0 for non-agent steps) |
-| `rss_flags` | jsonb | Reserved output flags set by the agent (null for non-agent steps) |
+| `ktsu_flags` | jsonb | Reserved output flags set by the agent (null for non-agent steps) |
 | PK | | `(run_id, step_id)` |
 
 #### `skill_calls`
@@ -354,7 +354,7 @@ If the orchestrator crashes and restarts, it reads the state store to recover:
 # Dev — SQLite (default, zero config)
 state_store:
   backend: sqlite
-  path: "./data/rss.db"
+  path: "./data/ktsu.db"
 
 # Production — PostgreSQL
 state_store:
@@ -396,7 +396,7 @@ state_store:
 6. Agent calls the LLM Gateway for reasoning. Gateway resolves the model, makes the outbound call, returns response with token metrics.
 7. Agent Runtime heartbeat timer (every 5s) reports this invocation as active. Orchestrator updates `last_heartbeat_at`.
 8. Agent assembles output. Agent Runtime POSTs result back to orchestrator, removes invocation from active set.
-9. Orchestrator processes reserved output fields (`rss_*`). If any reserved field triggers a fatal condition, the run or step fails immediately.
+9. Orchestrator processes reserved output fields (`ktsu_*`). If any reserved field triggers a fatal condition, the run or step fails immediately.
 10. Orchestrator runs Air-Lock. If valid, updates step to `status = 'ok'`, stores output, resolves next steps. If invalid and retries remain, re-dispatches to Agent Runtime with error appended.
 
 ### Step Status Values
@@ -437,7 +437,7 @@ state_store:
     "triage": {
       "status":       "ok",
       "completed_at": "2026-03-14T09:11:48Z",
-      "rss_flags":    [],
+      "ktsu_flags":    [],
       "metrics": {
         "model_group":    "standard",
         "model_resolved": "anthropic/claude-sonnet-4-6",
@@ -484,7 +484,7 @@ version: "3.8"
 
 services:
   orchestrator:
-    image: rss/orchestrator:latest
+    image: ktsu/orchestrator:latest
     ports:
       - "8080:8080"
     volumes:
@@ -495,39 +495,39 @@ services:
       - ./outlets:/app/outlets
       - ./environments:/app/environments
       - ./gateway.yaml:/app/gateway.yaml
-      - rss-data:/app/data
+      - ktsu-data:/app/data
     environment:
-      - RSS_ENV=environments/dev.env.yaml
+      - KTSU_ENV=environments/dev.env.yaml
 
   agent-runtime:
-    image: rss/agent-runtime:latest
+    image: ktsu/agent-runtime:latest
     environment:
       - ORCHESTRATOR_URL=http://orchestrator:8080
       - LLM_GATEWAY_URL=http://llm-gateway:8080
       - HEARTBEAT_INTERVAL_S=5
 
   llm-gateway:
-    image: rss/llm-gateway:latest
+    image: ktsu/llm-gateway:latest
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
 
-  rss-kv:
-    image: rss/kv:latest
+  ktsu-kv:
+    image: ktsu/kv:latest
     environment:
       - ORCHESTRATOR_URL=http://orchestrator:8080
 
-  rss-log:
-    image: rss/log:latest
+  ktsu-log:
+    image: ktsu/log:latest
     environment:
       - ORCHESTRATOR_URL=http://orchestrator:8080
 
-  rss-envelope:
-    image: rss/envelope:latest
+  ktsu-envelope:
+    image: ktsu/envelope:latest
     environment:
       - ORCHESTRATOR_URL=http://orchestrator:8080
 
 volumes:
-  rss-data:
+  ktsu-data:
 
 networks:
   default:
@@ -549,7 +549,7 @@ networks:
 - **`cost_budget_usd` fails forward, not backward.** When the budget is hit, pending steps are marked `skipped: budget_exceeded`. Running work completes — nothing new starts.
 - **Air-Lock failures are retryable on agent steps.** The orchestrator sends the error back to the Agent Runtime for correction, up to `retry.max` times.
 - **Tool failures are fatal to the agent.** If any tool call fails within an agent's execution, the agent step fails.
-- **Reserved output field conditions are evaluated before Air-Lock.** If `rss_injection_attempt: true` is set, the run fails immediately — Air-Lock is not reached.
+- **Reserved output field conditions are evaluated before Air-Lock.** If `ktsu_injection_attempt: true` is set, the run fails immediately — Air-Lock is not reached.
 
 ### Failure in Parallel Branches
 

@@ -1,22 +1,32 @@
 package types
 
-// ReservedFields holds the rss_* output fields that the orchestrator
-// interprets for control flow and routing decisions.
+// ReservedFields holds the ktsu_* output fields that the orchestrator
+// interprets for security signals, quality signals, flow control, and observability.
 // These fields are reserved and may not be set by user pipeline steps.
 type ReservedFields struct {
-	// rss_next specifies the next step ID to execute (overrides DAG default)
-	Next string `json:"rss_next,omitempty"`
-	// rss_skip is a list of step IDs to skip
-	Skip []string `json:"rss_skip,omitempty"`
-	// rss_abort signals that the pipeline should be aborted
-	Abort bool `json:"rss_abort,omitempty"`
-	// rss_abort_reason is a human-readable reason for aborting
-	AbortReason string `json:"rss_abort_reason,omitempty"`
-	// rss_retry requests that the current step be retried
-	Retry bool `json:"rss_retry,omitempty"`
-	// rss_retry_delay_ms is the delay before retrying in milliseconds
-	RetryDelayMS int `json:"rss_retry_delay_ms,omitempty"`
+	// ktsu_injection_attempt signals that untrusted input attempted to hijack agent behavior.
+	// Orchestrator action: fail the entire run immediately.
+	InjectionAttempt bool `json:"ktsu_injection_attempt,omitempty"`
+	// ktsu_untrusted_content signals suspicious content that does not rise to a clear injection attempt.
+	// Orchestrator action: fail the step.
+	UntrustedContent bool `json:"ktsu_untrusted_content,omitempty"`
+	// ktsu_confidence is the agent's self-assessed confidence in its output (0.0–1.0).
+	// Orchestrator action: fail the step if below the declared confidence_threshold.
+	Confidence float64 `json:"ktsu_confidence,omitempty"`
+	// ktsu_low_quality signals that the agent could not produce a reliable output.
+	// Orchestrator action: fail the step.
+	LowQuality bool `json:"ktsu_low_quality,omitempty"`
+	// ktsu_skip_reason signals that there is legitimately nothing to do.
+	// Orchestrator action: mark the step skipped with the provided reason.
+	SkipReason string `json:"ktsu_skip_reason,omitempty"`
+	// ktsu_needs_human signals that the case exceeds the agent's confidence or authorization.
+	// Orchestrator action: fail the run with error code needs_human_review.
+	NeedsHuman bool `json:"ktsu_needs_human,omitempty"`
+	// ktsu_flags are soft labels for observability. No pipeline effect.
+	Flags []string `json:"ktsu_flags,omitempty"`
+	// ktsu_rationale is the agent's explanation of its reasoning. No pipeline effect.
+	Rationale string `json:"ktsu_rationale,omitempty"`
 }
 
 // ReservedPrefix is the prefix for all reserved output fields
-const ReservedPrefix = "rss_"
+const ReservedPrefix = "ktsu_"

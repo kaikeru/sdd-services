@@ -12,7 +12,7 @@ type CLIServer struct{}
 
 func New() *CLIServer { return &CLIServer{} }
 
-func (s *CLIServer) Name() string { return "rss/cli" }
+func (s *CLIServer) Name() string { return "ktsu/cli" }
 
 func (s *CLIServer) Tools() []mcp.Tool {
 	return []mcp.Tool{
